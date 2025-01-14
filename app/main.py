@@ -1,8 +1,8 @@
 from typing import Any, Dict, List, Optional, Union
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request 
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-
-
+from pydantic import BaseModel, Field
 app = FastAPI(
     title="Kavida.ai Task",
     version="1.0.0",
@@ -13,6 +13,32 @@ origins = [
     "*",
 ]
 
+
+
+class ValidateRequestSchema(BaseModel):
+    data: Union[Dict[str, Any], List[Any]] = Field(
+        ...,
+        example={
+            "user": {
+                "name": "John Doe",
+                "age": 30,
+                "address": {"city": "New York", "zip": "10001"}
+            },
+            "order": {
+                "id": "12345",
+                "items": [
+                    {"name": "Laptop", "price": 1000},
+                    {"name": "Mouse", "price": 20}
+                ]
+            }
+        }
+    )
+    optional_fields: Optional[List[str]] = Field(
+        default=None,
+        example=["user.age"]
+    )
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -21,6 +47,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.get("/")
+async def get():
+    return JSONResponse({"message": "Hello World"})
 
 def validate_json(
     data: Union[Dict, List], 
@@ -52,7 +82,7 @@ def validate_json(
     return {"status": "success"}
 
 @app.post("/validate/")
-async def validate_incoming_json(request: Request):
+async def validate_incoming_json(request: ValidateRequestSchema):
     try:
         body = await request.json()
     except Exception as e:
